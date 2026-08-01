@@ -83,7 +83,7 @@ export default function App() {
           <div>
             <h1 className="text-lg font-semibold leading-tight">Gant</h1>
             <p className="ai-shimmer text-xs font-medium">
-              Диаграмма Гантта с AI-ассистентом
+              Диаграмма Ганта с AI-ассистентом
             </p>
           </div>
         </div>

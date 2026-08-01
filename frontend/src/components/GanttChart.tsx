@@ -4,7 +4,7 @@ import {
   ViewMode,
 } from "gantt-task-react";
 import "gantt-task-react/dist/index.css";
-import type { CSSProperties } from "react";
+import { useRef, type CSSProperties } from "react";
 
 import { Task } from "@/api";
 import { colorForAssignee } from "@/lib/colors";
@@ -29,8 +29,6 @@ export const VIEW_MODES: {
 const COLUMNS = [
   { key: "name", label: "Задача", width: 180 },
   { key: "assignee", label: "Исполнитель", width: 130 },
-  { key: "start", label: "Начало", width: 100 },
-  { key: "end", label: "Окончание", width: 100 },
 ] as const;
 
 const LIST_WIDTH = COLUMNS.reduce((sum, c) => sum + c.width, 0);
@@ -48,12 +46,6 @@ function cellStyle(width: number, withDivider: boolean): CSSProperties {
   };
 }
 
-const dateFmt = new Intl.DateTimeFormat("ru", {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-});
-
 export default function GanttChart({
   tasks,
   viewIndex,
@@ -61,6 +53,8 @@ export default function GanttChart({
   onDateChange,
 }: Props) {
   const view = VIEW_MODES[viewIndex];
+  // gantt-task-react fires onClick after drag mouseup; skip that synthetic click
+  const suppressClickRef = useRef(false);
 
   if (tasks.length === 0) {
     return (
@@ -149,8 +143,6 @@ export default function GanttChart({
         const values: Record<(typeof COLUMNS)[number]["key"], string> = {
           name: t.name,
           assignee,
-          start: dateFmt.format(t.start),
-          end: dateFmt.format(t.end),
         };
         return (
           <div
@@ -192,10 +184,19 @@ export default function GanttChart({
           TaskListHeader={TaskListHeader}
           TaskListTable={TaskListTable}
           onClick={(gt) => {
+            if (suppressClickRef.current) {
+              suppressClickRef.current = false;
+              return;
+            }
             const task = byId.get(gt.id);
             if (task) onSelect(task);
           }}
           onDateChange={(gt) => {
+            // Date change runs on mouseup before the trailing click event
+            suppressClickRef.current = true;
+            window.setTimeout(() => {
+              suppressClickRef.current = false;
+            }, 0);
             const task = byId.get(gt.id);
             if (task) onDateChange(task, gt.start, gt.end);
           }}
