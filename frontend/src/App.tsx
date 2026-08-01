@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Upload, Download, RotateCcw, CalendarRange } from "lucide-react";
+import { Upload, Download, RotateCcw } from "lucide-react";
 
 import { api, Task } from "@/api";
 import { Button } from "@/components/ui/button";
-import GanttChart from "@/components/GanttChart";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import GanttChart, { VIEW_MODES } from "@/components/GanttChart";
 import ChatPanel from "@/components/ChatPanel";
 import TaskDialog from "@/components/TaskDialog";
 
@@ -13,6 +14,7 @@ export default function App() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [viewIndex, setViewIndex] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function refresh() {
@@ -71,18 +73,41 @@ export default function App() {
 
   return (
     <div className="flex h-screen flex-col">
-      <header className="flex items-center justify-between border-b px-6 py-3">
-        <div className="flex items-center gap-2">
-          <CalendarRange className="h-6 w-6 text-primary" />
+      <header className="flex items-center justify-between border-b px-4 py-2">
+        <div className="flex items-center gap-3">
+          <img
+            src="/logo.png"
+            alt="Gant"
+            className="h-12 w-12 object-contain"
+          />
           <div>
             <h1 className="text-lg font-semibold leading-tight">Gant</h1>
-            <p className="text-xs text-muted-foreground">
+            <p className="ai-shimmer text-xs font-medium">
               Диаграмма Гантта с AI-ассистентом
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Масштаб:</span>
+            <ToggleGroup
+              type="single"
+              variant="outline"
+              size="sm"
+              value={String(viewIndex)}
+              onValueChange={(value) => {
+                if (value) setViewIndex(Number(value));
+              }}
+            >
+              {VIEW_MODES.map((vm, i) => (
+                <ToggleGroupItem key={vm.label} value={String(i)}>
+                  {vm.label}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </div>
+          <div className="h-6 w-px bg-border" aria-hidden />
           <input
             ref={fileRef}
             type="file"
@@ -107,7 +132,12 @@ export default function App() {
               <Download /> Экспорт Excel
             </a>
           </Button>
-          <Button variant="ghost" size="sm" disabled={busy} onClick={handleReset}>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={busy}
+            onClick={handleReset}
+          >
             <RotateCcw /> Сбросить
           </Button>
         </div>
@@ -120,9 +150,10 @@ export default function App() {
       )}
 
       <main className="grid min-h-0 flex-1 grid-cols-[1fr_380px]">
-        <section className="min-h-0 overflow-hidden p-4">
+        <section className="min-h-0 overflow-hidden">
           <GanttChart
             tasks={tasks}
+            viewIndex={viewIndex}
             onSelect={openTask}
             onDateChange={handleDateChange}
           />

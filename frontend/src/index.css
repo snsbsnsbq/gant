@@ -10,20 +10,20 @@
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 9%;
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-    --radius: 0.6rem;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 0 0% 9%;
+    --radius: 0.75rem;
   }
 }
 
@@ -32,15 +32,45 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    @apply bg-background font-sans font-medium text-foreground antialiased;
+  }
+}
+
+/* AI-style shimmering violet gradient text */
+.ai-shimmer {
+  background: linear-gradient(
+    110deg,
+    #7c3aed 0%,
+    #a78bfa 25%,
+    #c4b5fd 40%,
+    #8b5cf6 55%,
+    #6d28d9 70%,
+    #a78bfa 85%,
+    #7c3aed 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: ai-shimmer 4s linear infinite;
+}
+
+@keyframes ai-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
   }
 }
 
 /* Tidy up the third-party Gantt to match the light shadcn look. */
 .gantt-container {
-  border: 1px solid hsl(var(--border));
-  border-radius: var(--radius);
   overflow: auto;
   background: hsl(var(--card));
+}
+
+/* Calendar header bar: no top outline flush with the page edge */
+.gantt-container ._35nLX {
+  stroke: none;
 }
