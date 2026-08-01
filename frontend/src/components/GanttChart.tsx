@@ -33,6 +33,50 @@ const COLUMNS = [
 
 const LIST_WIDTH = COLUMNS.reduce((sum, c) => sum + c.width, 0);
 
+function pluralizeDays(n: number): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return "день";
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return "дня";
+  return "дней";
+}
+
+function TooltipContent({
+  task,
+  fontSize,
+  fontFamily,
+}: {
+  task: GanttTask;
+  fontSize: string;
+  fontFamily: string;
+}) {
+  const days = Math.round(
+    (task.end.getTime() - task.start.getTime()) / (1000 * 60 * 60 * 24),
+  );
+  return (
+    <div
+      style={{
+        fontSize,
+        fontFamily,
+        background: "#fff",
+        padding: "8px 12px",
+        borderRadius: 8,
+        boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
+        border: "1px solid #e6e4e4",
+      }}
+    >
+      <div style={{ fontWeight: 600, marginBottom: 4 }}>
+        {task.name}: {task.start.toLocaleDateString("ru")} —{" "}
+        {task.end.toLocaleDateString("ru")}
+      </div>
+      <div>
+        Длительность: {days} {pluralizeDays(days)}
+      </div>
+      {task.progress > 0 && <div>Прогресс: {task.progress}%</div>}
+    </div>
+  );
+}
+
 function cellStyle(width: number, withDivider: boolean): CSSProperties {
   return {
     minWidth: width,
@@ -183,6 +227,7 @@ export default function GanttChart({
           locale="ru"
           TaskListHeader={TaskListHeader}
           TaskListTable={TaskListTable}
+          TooltipContent={TooltipContent}
           onClick={(gt) => {
             if (suppressClickRef.current) {
               suppressClickRef.current = false;
