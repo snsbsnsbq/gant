@@ -4,6 +4,7 @@ from pydantic import BaseModel
 
 from app import seed, services
 from app.agent import run_agent
+from app.excel import ExcelValidationError
 from app.models import Task, TaskCreate, TaskUpdate
 
 router = APIRouter(prefix="/api", tags=["gant"])
@@ -71,8 +72,13 @@ async def import_excel(file: UploadFile = File(...)) -> list[Task]:
     data = await file.read()
     try:
         return await services.import_excel(data)
-    except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Failed to parse Excel: {exc}")
+    except ExcelValidationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception:
+        raise HTTPException(
+            status_code=400,
+            detail="Не удалось обработать файл. Проверьте, что это корректный Excel-файл.",
+        )
 
 
 @router.get("/export")

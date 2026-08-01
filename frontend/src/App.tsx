@@ -1,9 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { Upload, Download, RotateCcw } from "lucide-react";
+import { Upload, Download, RotateCcw, Loader2 } from "lucide-react";
 
 import { api, Task } from "@/api";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import GanttChart, { VIEW_MODES } from "@/components/GanttChart";
 import ChatPanel from "@/components/ChatPanel";
 import TaskDialog from "@/components/TaskDialog";
@@ -13,6 +20,8 @@ export default function App() {
   const [selected, setSelected] = useState<Task | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
   const [busy, setBusy] = useState(false);
   const [viewIndex, setViewIndex] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -31,15 +40,16 @@ export default function App() {
   }, []);
 
   async function handleImport(file: File) {
-    setBusy(true);
+    setImporting(true);
     try {
       const imported = await api.importExcel(file);
       setTasks(imported);
       setError(null);
+      setImportError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Ошибка импорта Excel");
+      setImportError(e instanceof Error ? e.message : "Ошибка импорта Excel");
     } finally {
-      setBusy(false);
+      setImporting(false);
     }
   }
 
@@ -122,10 +132,22 @@ export default function App() {
           <Button
             variant="outline"
             size="sm"
-            disabled={busy}
+            className="relative"
+            disabled={busy || importing}
             onClick={() => fileRef.current?.click()}
           >
-            <Upload /> Импорт Excel
+            <span
+              className={
+                importing
+                  ? "invisible flex items-center gap-2"
+                  : "flex items-center gap-2"
+              }
+            >
+              <Upload /> Импорт Excel
+            </span>
+            {importing && (
+              <Loader2 className="absolute animate-spin" aria-label="Импорт..." />
+            )}
           </Button>
           <Button variant="outline" size="sm" asChild>
             <a href={api.exportUrl}>
@@ -170,6 +192,29 @@ export default function App() {
         onOpenChange={setDialogOpen}
         onDelete={handleDelete}
       />
+
+      <Dialog
+        open={importError !== null}
+        onOpenChange={(open) => {
+          if (!open) setImportError(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive">
+              Не удалось импортировать Excel
+            </DialogTitle>
+            <DialogDescription className="whitespace-pre-wrap break-words pt-2 text-foreground">
+              {importError}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end">
+            <Button variant="outline" size="sm" onClick={() => setImportError(null)}>
+              Закрыть
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

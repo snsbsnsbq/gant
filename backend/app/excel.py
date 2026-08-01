@@ -5,6 +5,10 @@ from openpyxl import Workbook, load_workbook
 
 from app.models import Task
 
+
+class ExcelValidationError(ValueError):
+    """Raised when an uploaded Excel file fails validation."""
+
 # Header aliases (Russian primary, English fallbacks) -> canonical field.
 HEADER_MAP = {
     "задача": "name",
@@ -40,19 +44,35 @@ def _split_predecessors(value: str) -> list[str]:
 
 
 def parse_excel(data: bytes) -> list[dict]:
-    """Parse an uploaded xlsx into raw task dicts.
+    """Parse and validate an uploaded xlsx into raw task dicts.
 
     Predecessors are returned as *names* (``predecessor_names``); the caller
     resolves them to ids after tasks are created.
+
+    Raises :class:`ExcelValidationError` with a human-readable message when the
+    file is not a valid task import.
     """
-    wb = load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+    if not data:
+        raise ExcelValidationError("Файл пустой. Загрузите Excel-файл с задачами.")
+
+    try:
+        wb = load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+    except ExcelValidationError:
+        raise
+    except Exception:
+        raise ExcelValidationError(
+            "Не удалось прочитать файл. Убедитесь, что это корректный Excel-файл (.xlsx)."
+        )
+
     ws = wb.active
+    if ws is None:
+        raise ExcelValidationError("В файле нет ни одного листа с данными.")
 
     rows = ws.iter_rows(values_only=True)
     try:
         header = next(rows)
     except StopIteration:
-        return []
+        raise ExcelValidationError("Файл пустой: не найдена строка заголовков.")
 
     columns: dict[int, str] = {}
     for idx, cell in enumerate(header):
@@ -62,26 +82,77 @@ def parse_excel(data: bytes) -> list[dict]:
         if key in HEADER_MAP:
             columns[idx] = HEADER_MAP[key]
 
+    if "name" not in columns.values():
+        raise ExcelValidationError(
+            "Не найден обязательный столбец с названием задачи "
+            "(например «Задача» или «Task»)."
+        )
+
     tasks: list[dict] = []
-    for row in rows:
+    errors: list[str] = []
+    seen_names: set[str] = set()
+
+    for row_number, row in enumerate(rows, start=2):
+        if all(cell is None or str(cell).strip() == "" for cell in row):
+            continue  # skip fully empty rows
+
         record = {"name": "", "description": "", "assignee": "", "duration": 1}
         predecessor_names: list[str] = []
         for idx, field in columns.items():
             value = row[idx] if idx < len(row) else None
             if field == "duration":
-                try:
-                    record["duration"] = max(int(float(value)), 0) if value is not None else 1
-                except (TypeError, ValueError):
+                if value is None or str(value).strip() == "":
                     record["duration"] = 1
+                else:
+                    try:
+                        duration = int(float(value))
+                    except (TypeError, ValueError):
+                        errors.append(
+                            f"строка {row_number}: длительность «{value}» не является числом"
+                        )
+                        continue
+                    if duration < 0:
+                        errors.append(
+                            f"строка {row_number}: длительность не может быть отрицательной"
+                        )
+                        continue
+                    record["duration"] = duration
             elif field == "predecessors":
                 predecessor_names = _split_predecessors(value)
             else:
                 record[field] = str(value).strip() if value is not None else ""
 
         if not record["name"]:
+            errors.append(f"строка {row_number}: не заполнено название задачи")
             continue
+
+        key = record["name"].strip().lower()
+        if key in seen_names:
+            errors.append(
+                f"строка {row_number}: задача «{record['name']}» повторяется"
+            )
+            continue
+        seen_names.add(key)
+
         record["predecessor_names"] = predecessor_names
         tasks.append(record)
+
+    # Validate that predecessors reference tasks present in the same file.
+    for record in tasks:
+        for name in record["predecessor_names"]:
+            if name.strip().lower() not in seen_names:
+                errors.append(
+                    f"задача «{record['name']}»: предшественник «{name}» не найден среди задач"
+                )
+
+    if not tasks and not errors:
+        raise ExcelValidationError("В файле нет ни одной задачи для импорта.")
+
+    if errors:
+        preview = "; ".join(errors[:10])
+        if len(errors) > 10:
+            preview += f" и ещё {len(errors) - 10} ошибок"
+        raise ExcelValidationError(f"Файл содержит ошибки: {preview}.")
 
     return tasks
 
