@@ -204,7 +204,7 @@ export default function ChatPanel({ onPlanChanged }: Props) {
             <div className="flex w-full items-center py-1">
               {showThinkingLabel ? (
                 <span className="thinking-shimmer text-sm font-medium">
-                  Думаю
+                  Думаю...
                 </span>
               ) : (
                 <PulsingDot />

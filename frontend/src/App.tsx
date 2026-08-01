@@ -76,12 +76,12 @@ export default function App() {
       <header className="flex items-center justify-between border-b px-4 py-2">
         <div className="flex items-center gap-3">
           <img
-            src="/logo.png"
-            alt="Gant"
+            src="/logo.png?v=2"
+            alt="Gant AI"
             className="h-12 w-12 object-contain"
           />
           <div>
-            <h1 className="text-lg font-semibold leading-tight">Gant</h1>
+            <h1 className="text-lg font-semibold leading-tight">Gant AI</h1>
             <p className="ai-shimmer text-xs font-medium">
               Диаграмма Ганта с AI-ассистентом
             </p>
